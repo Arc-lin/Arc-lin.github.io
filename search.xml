@@ -1752,7 +1752,22 @@
     <title>iOS 底层原理 --- Block、__block及其底层实现</title>
     <url>/post/8275b854.html</url>
     <content><![CDATA[<p>本文主要简述Block、__block的本质是什么东西，文章涉及循环引用等开发常见问题，需要重点关注。</p>
-<span id="more"></span>]]></content>
+<span id="more"></span>
+
+<h2 id="block的底层结构"><a href="#block的底层结构" class="headerlink" title="block的底层结构"></a>block的底层结构</h2><p>ARC环境下，会自动会block进行一次copy操作，将block从栈拷贝到堆上面</p>
+<h2 id="block"><a href="#block" class="headerlink" title="__block"></a>__block</h2><ul>
+<li><p>注意 MRC环境下，__block 不会对变量造成强引用，即以下情况person会提前释放</p>
+  <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">__block Person *person &#x3D; [Person new];</span><br><span class="line">void(^block)(void) &#x3D; ^&#123;</span><br><span class="line">	NSLog(@&quot;%@&quot;,person);</span><br><span class="line">&#125;;</span><br><span class="line">block(); &#x2F;&#x2F;&#x2F; 这时候person已经释放了</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="循环引用"><a href="#循环引用" class="headerlink" title="循环引用"></a>循环引用</h2><ul>
+<li><p>以下代码会产生循环引用</p>
+  <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">Person *person &#x3D; [Person alloc] init];</span><br><span class="line">person.age &#x3D; 10;</span><br><span class="line">person.block &#x3D; ^&#123;</span><br><span class="line">	NSLog(@&quot;age is %d&quot;,person.age);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></li>
+<li><p>__weak: 不会产生强引用，指向的对象销毁时，会自动让指针至nil</p>
+</li>
+<li><p>__unsafe_unretain: 不会产生强引用，不安全，指向的对象销毁时，指针存储的地址值不变</p>
+</li>
+</ul>
+]]></content>
       <categories>
         <category>iOS</category>
       </categories>
@@ -1986,45 +2001,6 @@
 <li>关联对象存储在全局统一的<code>AssociationsManager</code>中</li>
 <li>设置关联对象（object参数）为nil，就相当于是移除关联对象</li>
 </ol>
-]]></content>
-      <categories>
-        <category>iOS</category>
-      </categories>
-      <tags>
-        <tag>iOS</tag>
-        <tag>底层原理</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>iOS 底层原理 --- KVC</title>
-    <url>/post/34b9a649.html</url>
-    <content><![CDATA[<p>本文讲述KVC的底层实现和KVC是否能触发KVO呢？</p>
-<span id="more"></span>
-
-<h2 id="KVC的使用"><a href="#KVC的使用" class="headerlink" title="KVC的使用"></a>KVC的使用</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[self.person setValue:@10 forKey:@&quot;age&quot;]</span><br><span class="line"></span><br><span class="line">[self.person setValue:@10 forKeyPath:@&quot;age&quot;]</span><br></pre></td></tr></table></figure>
-
-<p>keyPath和key的区别是，keyPath可以使用路径的方式进行赋值，比如person对象内有cat模型属性，cat对象里面有age属性，那么就可以使用<code>[self.person setValue:@10 forKeyPath:@&quot;cat.age&quot;]</code>的方式使用KVC，而key方式只支持直接访问的方式赋值</p>
-<h2 id="赋值过程"><a href="#赋值过程" class="headerlink" title="赋值过程"></a>赋值过程</h2><p><code>setValue:forKey</code>首先会先寻找<code>setKey:</code>方法，如果找不到，那么就会寻找<code>_setKey:</code>方法，类似下面这样子</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#x2F;&#x2F;&#x2F; 优先找这个方法</span><br><span class="line">- （void）setAge:(int)age &#123;</span><br><span class="line">	_age &#x3D; age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;&#x2F; 找不到上面那个方法的话，就找下面这儿方法</span><br><span class="line">- （void）_setAge:(int)age &#123;</span><br><span class="line">	_age &#x3D; age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>如果上述两个方法都找不到，那么就会去访问类方法<code>+ (BOOL)accessInstanceVariablesDirectly</code>，询问是否允许直接访问成员变量，默认返回YES</p>
-<ul>
-<li><p>如果返回NO的话，那么程序会直接抛出异常<code>exception NSUnknownKeyException, reason:[XXX setValue:forUndefinedKey:]: this class is not key value coding-compliant for the key age</code></p>
-</li>
-<li><p>如果返回YES，那么程序会去直接访问成员变量，查找的顺序是<code>_key、_isKey、key、isKey</code>，类似下面这样子</p>
-</li>
-</ul>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    @public </span><br><span class="line">    int _age;</span><br><span class="line">    int _isAge;</span><br><span class="line">    int age;</span><br><span class="line">    int isAge;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<ol>
-<li>如果找到了成员变量，那么就直接赋值</li>
-<li>如果找不到成员变量，那么就抛出上述异常</li>
-</ol>
-<h2 id="KVC是否会触发KVO"><a href="#KVC是否会触发KVO" class="headerlink" title="KVC是否会触发KVO"></a>KVC是否会触发KVO</h2><p>由于KVO是通过重写set方法的方式实现的，所以如果KVC找到了属性值并且通过set方法赋值的话，那么就自然会触发KVO</p>
-<p>如果KVC找不到set方法，如果<code>+ (BOOL)accessInstanceVariablesDirectly</code>返回YES的话，那么他去访问成员方法的时候，即便这时候成员方法是没有实现set方法的，KVC依旧会去执行<code>willChangeValueForKey:</code>和<code>didChangeValueForKey:</code>方法，在执行<code>didChangeValueForKey:</code>的时候，自然KVO就被触发了</p>
-<h2 id="valueForKey-的底层原理"><a href="#valueForKey-的底层原理" class="headerlink" title="valueForKey:的底层原理"></a>valueForKey:的底层原理</h2><p><code>valueForKey:</code>首先会根据<code>getKey、key、isKey、_key</code>顺序查找方法，找到了的话就调用，拿到返回值。</p>
-<p>如果没有找到方法，那么就会去访问类方法<code>+ (BOOL)accessInstanceVariablesDirectly</code>，询问是否允许直接访问成员变量，默认返回YES</p>
-<p>如果允许，那么按照<code>_key、_isKey、key、isKey</code>顺序查找成员变量，找到了的话就直接取值，找不到就抛出异常<code>NSUnknownKeyException</code>。</p>
-<p>如果不允许，就抛出异常<code>NSUnknownKeyException</code></p>
 ]]></content>
       <categories>
         <category>iOS</category>
@@ -3487,23 +3463,6 @@
       </tags>
   </entry>
   <entry>
-    <title>安装shadowsocks服务端</title>
-    <url>/post/eb81866c.html</url>
-    <content><![CDATA[<p>安装shadowsocks服务端</p>
-<span id="more"></span>
-
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">sudo yum install python-pip</span><br><span class="line">sudo pip install shadowsocks</span><br></pre></td></tr></table></figure>
-
-<p>配置文件</p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line"> &quot;server”:”172.93.xx.xx”, # 服务器IP </span><br><span class="line"> &quot;server_port&quot;:8388, # 端口号</span><br><span class="line"> &quot;local_address&quot;: &quot;127.0.0.1&quot;,</span><br><span class="line"> &quot;local_port”:1080,</span><br><span class="line"> &quot;password&quot;:&quot;gtPtAb)Wsss&quot;, # 密码</span><br><span class="line"> &quot;timeout&quot;:300,</span><br><span class="line"> &quot;method&quot;:&quot;aes-256-cfb&quot;,# 加密类型</span><br><span class="line"> &quot;fast_open&quot;: false</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
-      <categories>
-        <category>Linux</category>
-      </categories>
-      <tags>
-        <tag>Shadowsocks</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>用Swift的框架Vapor写服务端初体验</title>
     <url>/post/73291e5a.html</url>
     <content><![CDATA[<p>咦? 用Swift写后端? 一开始听到的时候懵逼了一秒,一秒自后想了想感觉也没毛病,那就试试看咯.(没看WWDC的后果)</p>
@@ -4917,6 +4876,45 @@
       </categories>
       <tags>
         <tag>iOS</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>iOS 底层原理 --- KVC</title>
+    <url>/post/34b9a649.html</url>
+    <content><![CDATA[<p>本文讲述KVC的底层实现和KVC是否能触发KVO呢？</p>
+<span id="more"></span>
+
+<h2 id="KVC的使用"><a href="#KVC的使用" class="headerlink" title="KVC的使用"></a>KVC的使用</h2><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">[self.person setValue:@10 forKey:@&quot;age&quot;]</span><br><span class="line"></span><br><span class="line">[self.person setValue:@10 forKeyPath:@&quot;age&quot;]</span><br></pre></td></tr></table></figure>
+
+<p>keyPath和key的区别是，keyPath可以使用路径的方式进行赋值，比如person对象内有cat模型属性，cat对象里面有age属性，那么就可以使用<code>[self.person setValue:@10 forKeyPath:@&quot;cat.age&quot;]</code>的方式使用KVC，而key方式只支持直接访问的方式赋值</p>
+<h2 id="赋值过程"><a href="#赋值过程" class="headerlink" title="赋值过程"></a>赋值过程</h2><p><code>setValue:forKey</code>首先会先寻找<code>setKey:</code>方法，如果找不到，那么就会寻找<code>_setKey:</code>方法，类似下面这样子</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#x2F;&#x2F;&#x2F; 优先找这个方法</span><br><span class="line">- （void）setAge:(int)age &#123;</span><br><span class="line">	_age &#x3D; age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;&#x2F; 找不到上面那个方法的话，就找下面这儿方法</span><br><span class="line">- （void）_setAge:(int)age &#123;</span><br><span class="line">	_age &#x3D; age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果上述两个方法都找不到，那么就会去访问类方法<code>+ (BOOL)accessInstanceVariablesDirectly</code>，询问是否允许直接访问成员变量，默认返回YES</p>
+<ul>
+<li><p>如果返回NO的话，那么程序会直接抛出异常<code>exception NSUnknownKeyException, reason:[XXX setValue:forUndefinedKey:]: this class is not key value coding-compliant for the key age</code></p>
+</li>
+<li><p>如果返回YES，那么程序会去直接访问成员变量，查找的顺序是<code>_key、_isKey、key、isKey</code>，类似下面这样子</p>
+</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    @public </span><br><span class="line">    int _age;</span><br><span class="line">    int _isAge;</span><br><span class="line">    int age;</span><br><span class="line">    int isAge;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>如果找到了成员变量，那么就直接赋值</li>
+<li>如果找不到成员变量，那么就抛出上述异常</li>
+</ol>
+<h2 id="KVC是否会触发KVO"><a href="#KVC是否会触发KVO" class="headerlink" title="KVC是否会触发KVO"></a>KVC是否会触发KVO</h2><p>由于KVO是通过重写set方法的方式实现的，所以如果KVC找到了属性值并且通过set方法赋值的话，那么就自然会触发KVO</p>
+<p>如果KVC找不到set方法，如果<code>+ (BOOL)accessInstanceVariablesDirectly</code>返回YES的话，那么他去访问成员方法的时候，即便这时候成员方法是没有实现set方法的，KVC依旧会去执行<code>willChangeValueForKey:</code>和<code>didChangeValueForKey:</code>方法，在执行<code>didChangeValueForKey:</code>的时候，自然KVO就被触发了</p>
+<h2 id="valueForKey-的底层原理"><a href="#valueForKey-的底层原理" class="headerlink" title="valueForKey:的底层原理"></a>valueForKey:的底层原理</h2><p><code>valueForKey:</code>首先会根据<code>getKey、key、isKey、_key</code>顺序查找方法，找到了的话就调用，拿到返回值。</p>
+<p>如果没有找到方法，那么就会去访问类方法<code>+ (BOOL)accessInstanceVariablesDirectly</code>，询问是否允许直接访问成员变量，默认返回YES</p>
+<p>如果允许，那么按照<code>_key、_isKey、key、isKey</code>顺序查找成员变量，找到了的话就直接取值，找不到就抛出异常<code>NSUnknownKeyException</code>。</p>
+<p>如果不允许，就抛出异常<code>NSUnknownKeyException</code></p>
+]]></content>
+      <categories>
+        <category>iOS</category>
+      </categories>
+      <tags>
+        <tag>iOS</tag>
+        <tag>底层原理</tag>
       </tags>
   </entry>
 </search>
