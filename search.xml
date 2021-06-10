@@ -1751,7 +1751,14 @@
   <entry>
     <title>iOS 底层原理 --- Block、__block及其底层实现</title>
     <url>/post/8275b854.html</url>
-    <content><![CDATA[<p>本文主要简述Block、__block的本质是什么东西，文章涉及循环引用等开发常见问题，需要重点关注。</p>
+    <content><![CDATA[<p>Block、__block及其底层实现<br>author: Arclin<br>abbrlink: 8275b854<br>tags:</p>
+<ul>
+<li>iOS</li>
+<li>底层原理<br>categories:</li>
+<li>iOS<br>date: 2021-06-07 23:50:00</li>
+</ul>
+<hr>
+<p>本文主要简述Block、__block的本质是什么东西，文章涉及循环引用等开发常见问题，需要重点关注。</p>
 <span id="more"></span>
 
 
@@ -1823,37 +1830,21 @@
 <figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">struct __main_block_impl_0 &#123;</span><br><span class="line">  struct __block_impl impl;</span><br><span class="line">  struct __main_block_desc_0* Desc;</span><br><span class="line">  Person *self;</span><br><span class="line">  ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
 <h2 id="Block的类型"><a href="#Block的类型" class="headerlink" title="Block的类型"></a>Block的类型</h2><p>Block有三种类型，可以通过调用class方法或者isa指针查看具体类型，最终都是继承自NSBlock类型</p>
-<table>
-<thead>
-<tr>
-<th>存储区域</th>
-<th>类名</th>
-<th>特点</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>数据区域 .data区</td>
-<td><code>__NSGlobalBlock__</code></td>
-<td>没有访问auto变量</td>
-</tr>
-<tr>
-<td>栈区</td>
-<td><code>__NSStackBlock__</code></td>
-<td>访问了auto变量</td>
-</tr>
-<tr>
-<td>堆区</td>
-<td><code>__NSMallocBlock__</code></td>
-<td><code>__NSStackBlock__</code>调用了copy</td>
-</tr>
-</tbody></table>
+<p>|存储区域|类名|特点|调用copy后的效果|<br>|—|—|—|—|—|<br>|数据区域 .data区|<code>__NSGlobalBlock__</code>|没有访问auto变量|无效果|<br>|栈区|<code>__NSStackBlock__</code>|访问了auto变量|从栈复制到堆|<br>|堆区|<code>__NSMallocBlock__</code>|<code>__NSStackBlock__</code>调用了copy|引用计数增加|</p>
 <h3 id="NSGlobalBlock"><a href="#NSGlobalBlock" class="headerlink" title="__NSGlobalBlock__"></a><code>__NSGlobalBlock__</code></h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">void(^block)(void) &#x3D; ^&#123;</span><br><span class="line">    NSLog(@&quot;Hello world&quot;);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
-<h3 id="NSStackBlock"><a href="#NSStackBlock" class="headerlink" title="__NSStackBlock__"></a><code>__NSStackBlock__</code></h3><p>因为在ARC环境下，栈区block会自动copy，所以要测试这个类型的时候，需要使用MRC环境</p>
+<h3 id="NSStackBlock"><a href="#NSStackBlock" class="headerlink" title="__NSStackBlock__"></a><code>__NSStackBlock__</code></h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int age &#x3D; 20;</span><br><span class="line">void(^block)(void) &#x3D; ^&#123;</span><br><span class="line">   NSLog(@&quot;Block %d&quot;,age);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>因为在ARC环境下，栈区block会自动copy，所以要测试这个类型的时候，需要使用MRC环境</p>
 <p><strong>栈区数据的特点是会自动销毁，离开了作用域，数据都会销毁</strong></p>
 <p><strong>栈区block存在的问题是，捕获的变量会存放在栈区，所以一旦离开了作用域，捕获的内容就销毁了，将来再去访问这个block内捕获的变量，访问到的可能就是一个未知的内容</strong></p>
-<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int age &#x3D; 20;</span><br><span class="line">void(^block)(void) &#x3D; ^&#123;</span><br><span class="line">   NSLog(@&quot;Block %d&quot;,age);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-
+<p>以下情况编译器会自动将栈上的block复制到堆上：</p>
+<ol>
+<li>block作为函数返回值时</li>
+<li>将block赋值给__strong指针时</li>
+<li>block作为Cocoa API中方法名含有usingBlock的方法参数时</li>
+<li>block作为GCD API的方法参数时</li>
+</ol>
 <h3 id="NSMallocBlock"><a href="#NSMallocBlock" class="headerlink" title="__NSMallocBlock__"></a><code>__NSMallocBlock__</code></h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">int age &#x3D; 20;</span><br><span class="line">void(^block)(void) &#x3D; [^&#123;</span><br><span class="line">   NSLog(@&quot;Block %d&quot;,age);</span><br><span class="line">&#125; copy];</span><br></pre></td></tr></table></figure>
 
 
