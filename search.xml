@@ -1984,6 +1984,7 @@
 </li>
 <li><p>在定义person指针的时候添加<code>__weak</code>修饰符或者<code>__unsafe_unretain</code>修饰符，就可以让block在捕获person的时候弱引用person，这样子就不会造成循环引用了.</p>
   <img src="https://z3.ax1x.com/2021/06/13/2I2lPU.png" alt="2I2lPU.png" border="0" width="50%" />
+  
 > __weak: 不会产生强引用，指向的对象销毁时，会自动让指针至nil，不支持MRC
  
 > __unsafe_unretain: 不会产生强引用，不安全，指向的对象销毁时，指针存储的地址值不变，变成野指针，支持MRC</li>

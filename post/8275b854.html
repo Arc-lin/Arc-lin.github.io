@@ -31,7 +31,7 @@
 <meta property="og:image" content="https://z3.ax1x.com/2021/06/13/2IcLXn.png">
 <meta property="og:image" content="https://z3.ax1x.com/2021/06/13/2IgCp4.png">
 <meta property="article:published_time" content="2021-06-07T15:50:00.000Z">
-<meta property="article:modified_time" content="2021-06-13T04:49:25.920Z">
+<meta property="article:modified_time" content="2021-06-14T07:24:54.237Z">
 <meta property="article:author" content="Arclin">
 <meta property="article:tag" content="iOS">
 <meta property="article:tag" content="底层原理">
@@ -484,6 +484,7 @@
 </li>
 <li><p>在定义person指针的时候添加<code>__weak</code>修饰符或者<code>__unsafe_unretain</code>修饰符，就可以让block在捕获person的时候弱引用person，这样子就不会造成循环引用了.</p>
   <img src="https://z3.ax1x.com/2021/06/13/2I2lPU.png" alt="2I2lPU.png" border="0" width="50%" />
+  
 > __weak: 不会产生强引用，指向的对象销毁时，会自动让指针至nil，不支持MRC
  
 > __unsafe_unretain: 不会产生强引用，不安全，指向的对象销毁时，指针存储的地址值不变，变成野指针，支持MRC</li>
@@ -718,6 +719,31 @@
 
 
   
+  <script>
+    (function(){
+      var canonicalURL, curProtocol;
+      //Get the <link> tag
+      var x=document.getElementsByTagName("link");
+		//Find the last canonical URL
+		if(x.length > 0){
+			for (i=0;i<x.length;i++){
+				if(x[i].rel.toLowerCase() == 'canonical' && x[i].href){
+					canonicalURL=x[i].href;
+				}
+			}
+		}
+    //Get protocol
+	    if (!canonicalURL){
+	    	curProtocol = window.location.protocol.split(':')[0];
+	    }
+	    else{
+	    	curProtocol = canonicalURL.split(':')[0];
+	    }
+      //Get current URL if the canonical URL does not exist
+	    if (!canonicalURL) canonicalURL = window.location.href;
+	    //Assign script content. Replace current URL with the canonical URL
+      !function(){var e=/([http|https]:\/\/[a-zA-Z0-9\_\.]+\.baidu\.com)/gi,r=canonicalURL,t=document.referrer;if(!e.test(r)){var n=(String(curProtocol).toLowerCase() === 'https')?"https://sp0.baidu.com/9_Q4simg2RQJ8t7jm9iCKT-xh_/s.gif":"//api.share.baidu.com/s.gif";t?(n+="?r="+encodeURIComponent(document.referrer),r&&(n+="&l="+r)):r&&(n+="?l="+r);var i=new Image;i.src=n}}(window);})();
+  </script>
 
 
 
