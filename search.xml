@@ -5311,14 +5311,7 @@
   <entry>
     <title>iOS 底层原理 --- 方法缓存、消息发送与super关键字</title>
     <url>/post/5ed61a9.html</url>
-    <content><![CDATA[<p>方法缓存、消息发送与super关键字<br>author: Arclin<br>tags:</p>
-<ul>
-<li>iOS</li>
-<li>底层原理<br>categories:</li>
-<li>iOS<br>abbrlink: 5ed61a9<br>date: 2021-06-29 01:11:00</li>
-</ul>
-<hr>
-<p>本文主要简述类（元类）对象里面的方法缓存、消息发送（包括消息发送，动态方法解析与消息转发）与super关键字的底层原理</p>
+    <content><![CDATA[<p>本文主要简述类（元类）对象里面的方法缓存、消息发送（包括消息发送，动态方法解析与消息转发）与super关键字的底层原理</p>
 <span id="more"></span>
 
 <h2 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h2><h3 id="Class对象的结构"><a href="#Class对象的结构" class="headerlink" title="Class对象的结构"></a>Class对象的结构</h3><figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">struct objc_class &#123;</span><br><span class="line">	Class isa;</span><br><span class="line">    Class superclass;</span><br><span class="line">    cache_t cache; &#x2F;&#x2F; 方法缓存</span><br><span class="line">    class_data_bits_t bits; &#x2F;&#x2F; 用于获取具体的类信息</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
